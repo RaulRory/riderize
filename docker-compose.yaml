@@ -1,0 +1,49 @@
+services:
+  riderize-postgre:
+    image: bitnami/postgresql:latest
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=raul
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=riderize
+    volumes:
+      - riderize_pg_data:/var/lib/postgresql/data
+    networks:
+      - riderize_network
+
+  riderize-redis:
+    image: redis:latest
+    ports:
+      - 6379:6379
+    networks:
+      - riderize_network
+    volumes:
+      - riderize_redis_data:/data
+
+  riderize-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 3000:3000
+    environment:
+      - DATABASE_URL=postgresql://raul:postgres@riderize-postgre:5432/riderize
+      - REDIS_URL=redis://riderize-redis:6379
+      - JWT_SECRET=minhasenhasecreta
+      - HOST=0.0.0.0
+    volumes:
+      - .:/app
+    networks:
+      - riderize_network
+    depends_on:
+      - riderize-postgre
+      - riderize-redis
+
+volumes:
+  riderize_pg_data:
+  riderize_redis_data:
+
+networks:
+  riderize_network:
+    driver: bridge
