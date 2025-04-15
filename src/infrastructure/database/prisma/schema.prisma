@@ -1,0 +1,56 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Cyclist {
+  id       String  @id @default(uuid())
+  name     String
+  email    String  @unique
+  password String
+  isLogued Boolean @default(false)
+
+  registratio_rides RegistrationRide[]
+
+  @@map("cyclists")
+}
+
+model Ride {
+  id                      String   @id @default(uuid())
+  name                    String
+  start_date              DateTime @default(now())
+  start_date_registration DateTime
+  end_date_registration   DateTime
+  start_place             String
+  additional_information  String?
+  participants_limit      Int?
+
+  registratio_rides RegistrationRide[]
+
+  @@map("rides")
+}
+
+model RegistrationRide {
+  id String @id @default(uuid())
+
+  ride    Ride   @relation(fields: [ride_id], references: [id])
+  ride_id String
+
+  cyclist    Cyclist @relation(fields: [cyclist_id], references: [id])
+  cyclist_id String
+
+  subscription_date DateTime
+
+  @@map("registrationRides")
+}
