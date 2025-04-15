@@ -1,0 +1,36 @@
+{
+  "name": "riderize",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "engines": {
+    "node": ">=20.13.1"
+  },
+  "scripts": {
+    "test": "node --env-file=.env --test test/**/*.spec.js",
+    "test:watch": "node --inspect=8000 --env-file=.env  --watch --test test/**/*.spec.js",
+    "test:coverage": "node --env-file=.env --test --experimental-test-coverage",
+    "start:dev": "node --inspect=8000 --env-file=.env --watch src/infrastructure/http/rest/server.js"
+  },
+  "keywords": [],
+  "author": "Raul Rory <raulrory@gmail.com>",
+  "license": "ISC",
+  "description": "API that will enable users to create pedals",
+  "devDependencies": {
+    "@faker-js/faker": "^8.4.1",
+    "@types/pg": "^8.11.10",
+    "prisma": "^5.19.1"
+  },
+  "dependencies": {
+    "@fastify/jwt": "^9.0.1",
+    "@prisma/adapter-pg": "^5.19.1",
+    "@prisma/client": "^5.19.1",
+    "fastify": "^5.0.0",
+    "graphql": "^16.10.0",
+    "graphql-scalars": "^1.24.0",
+    "joi": "^17.13.3",
+    "mercurius": "^16.0.0",
+    "pg": "^8.13.0",
+    "redis": "^4.7.0"
+  }
+}
