@@ -18,7 +18,7 @@ class PrismaRegistrationRidesRepository extends RegistrationRidesRepository {
     async listRegistrationRidesByCyclitId(cyclistId) {
         const registrationRides = await prisma.registrationRide.findMany({
             where: {
-                id: cyclistId,
+                cyclist_id: cyclistId,
             }
         });
 

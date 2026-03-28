@@ -16,7 +16,7 @@ class RegistrationRidesUseCase {
             throw new Error("ride not found.")
         }
 
-        if(ride.endDateRegistration.getDate() < subscriptionDate.getDate()) {
+        if(ride.endDateRegistration.getTime() < subscriptionDate.getTime()) {
             throw new Error("You cannot sign up for this ride.")
         }
 
