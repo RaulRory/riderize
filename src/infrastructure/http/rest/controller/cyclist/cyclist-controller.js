@@ -3,11 +3,18 @@ import { JoiValidator } from "../../libs/joi.js";
 import { makeCreateCyclyitUseCase } from "../../factories/makeCreateCiclystUseCase.js";
 import { makeListCyclistUseCase } from "../../factories/makeListCyclistUseCase.js";
 import { CacheRepository } from "../../../../database/redis/redis-repository.js";
+import Joi from "joi";
+
+const cyclistSchema = Joi.object({
+    name: Joi.string().trim().min(3).required(),
+    email: Joi.string().email().required(),
+    password: Joi.string().min(6).required(),
+});
 
 export class CyclistController {
     static async create(request, reply) {
         try {
-            const { name, email, password } = JoiValidator.validateSchema(request.body);
+            const { name, email, password } = JoiValidator.validateSchema(cyclistSchema, request.body);
     
             const createCyclistUseCase = makeCreateCyclyitUseCase();
     
@@ -29,7 +36,7 @@ export class CyclistController {
     static async fetch(request, reply) {
         try {
             const redisCache = new CacheRepository();
-            const cyclistIsCached = redisCache.existsDataInCache("cyclist");
+            const cyclistIsCached = await redisCache.existsDataInCache("cyclist");
             
             if(cyclistIsCached) {
                 return reply.status(200).send({ cyclist: cyclistIsCached });

@@ -3,7 +3,7 @@ import { redis } from "../connection/redis.js";
 export class CacheRepository {
     
     async addInCache(keyName, data) {
-        await redis.set(keyName, data);
+        await redis.set(keyName, JSON.stringify(data));
         return;
     }
 

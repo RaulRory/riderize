@@ -2,6 +2,17 @@ import { JoiValidator } from "../../libs/joi.js";
 import { makeCreateRideUseCase } from "../../factories/makeCreateRideUseCase.js";
 import { makeFindRideBydIdUseCase } from "../../factories/makeFindRideByIdUseCase.js";
 import { CacheRepository } from "../../../../database/redis/redis-repository.js";
+import Joi from "joi";
+
+const createRideSchema = Joi.object({
+    name: Joi.string().trim().min(3).required(),
+    starDate: Joi.date().required(),
+    starDateRegistration: Joi.date().required(),
+    endDateRegistration: Joi.date().required(),
+    startPlace: Joi.string().trim().required(),
+    additionalInformation: Joi.string().allow(null, "").optional(),
+    participantsLimit: Joi.number().integer().positive().optional(),
+});
 
 class RideController {
     static async create(request, reply) {
@@ -15,7 +26,7 @@ class RideController {
                 startPlace, 
                 additionalInformation, 
                 participantsLimit 
-            } = JoiValidator.validateSchema(request.body);
+            } = JoiValidator.validateSchema(createRideSchema, request.body);
 
             const createRideUseCase = makeCreateRideUseCase();
     
@@ -41,7 +52,7 @@ class RideController {
             const { id } = request.params;
 
             const redisCache = new CacheRepository();
-            const rideIsCached = redisCache.existsDataInCache(`ride-${id}`);
+            const rideIsCached = await redisCache.existsDataInCache(`ride-${id}`);
             
             if(rideIsCached) {
                 return reply.status(200).send({ ride: rideIsCached });

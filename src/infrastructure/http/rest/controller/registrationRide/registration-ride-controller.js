@@ -2,12 +2,19 @@ import { CacheRepository } from "../../../../database/redis/redis-repository.js"
 import { makeListRegistrationRideUseCase } from "../../factories/makeListRegistrationRideUseCase.js";
 import { makeRegistrationRideUseCase } from "../../factories/makeRegistrationRideUseCase.js";
 import { JoiValidator } from "../../libs/joi.js";
+import Joi from "joi";
+
+const registrationSchema = Joi.object({
+    cyclistId: Joi.string().uuid().required(),
+    rideId: Joi.string().uuid().required(),
+    subscriptionDate: Joi.date().required(),
+});
 
 export class RegistrationRideController {
     
     static async create(request, reply) {
         try {
-            const { cyclistId, rideId, subscriptionDate } = JoiValidator.validateSchema(request.body);
+            const { cyclistId, rideId, subscriptionDate } = JoiValidator.validateSchema(registrationSchema, request.body);
             const registrationRideUseCase = makeRegistrationRideUseCase();
             
             const { registrationRide } = await registrationRideUseCase.execute({ rideId, cyclistId, subscriptionDate });
@@ -23,7 +30,7 @@ export class RegistrationRideController {
         try {
             const cyclistId = request.user.sub;
             const redisCache = new CacheRepository();
-            const registrationIsCached = redisCache.existsDataInCache(`registration-${cyclistId}`);
+            const registrationIsCached = await redisCache.existsDataInCache(`registration-${cyclistId}`);
             
             if(registrationIsCached) {
                 return reply.status(200).send({ ride: registrationIsCached });
