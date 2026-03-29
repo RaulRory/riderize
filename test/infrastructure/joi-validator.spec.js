@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import { deepStrictEqual, rejects } from "node:assert";
 import Joi from "joi";
 import { JoiValidatorAdapter } from "../../src/infrastructure/http/rest/libs/joi.js";
+import { AppError } from "../../src/application/errors/app-error.js";
 
 describe("JoiValidator", () => {
   const validator = new JoiValidatorAdapter();
@@ -27,9 +28,13 @@ describe("JoiValidator", () => {
       age: Joi.number().required(),
     });
 
-    await rejects(
-      async () => validator.validate(schema, { name: "Rory", age: "invalid" }),
-      /Data Invalid!/
-    );
+    await rejects(async () => {
+      await validator.validate(schema, { name: "Rory", age: "invalid" });
+    }, (error) => {
+      deepStrictEqual(error instanceof AppError, true);
+      deepStrictEqual(error.code, "VALIDATION_ERROR");
+      deepStrictEqual(error.statusCode, 422);
+      return true;
+    });
   });
 });
