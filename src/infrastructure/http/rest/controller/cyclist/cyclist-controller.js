@@ -1,8 +1,4 @@
 
-import { JoiValidatorAdapter } from "../../libs/joi.js";
-import { makeCreateCyclyitUseCase } from "../../factories/makeCreateCiclystUseCase.js";
-import { makeListCyclistUseCase } from "../../factories/makeListCyclistUseCase.js";
-import { CacheRepository } from "../../../../database/redis/redis-repository.js";
 import Joi from "joi";
 
 const cyclistSchema = Joi.object({
@@ -12,23 +8,21 @@ const cyclistSchema = Joi.object({
 });
 
 export class CyclistController {
-    static dependencies = {
-        validator: new JoiValidatorAdapter(),
-        createUseCaseFactory: makeCreateCyclyitUseCase,
-        listUseCaseFactory: makeListCyclistUseCase,
-        cacheRepositoryFactory: () => new CacheRepository(),
-    };
+    static dependencies = {};
 
     static configure(dependencies) {
-        this.dependencies = {
-            ...this.dependencies,
+        CyclistController.dependencies = {
+            ...CyclistController.dependencies,
             ...dependencies,
         };
     }
 
     static async create(request, reply) {
         try {
-            const { validator, createUseCaseFactory } = this.dependencies;
+            const { validator, createUseCaseFactory } = CyclistController.dependencies;
+            if (!validator || !createUseCaseFactory) {
+                throw new Error("CyclistController dependencies are not configured.");
+            }
             const { name, email, password } = validator.validate(cyclistSchema, request.body);
     
             const createCyclistUseCase = createUseCaseFactory();
@@ -50,7 +44,10 @@ export class CyclistController {
 
     static async fetch(request, reply) {
         try {
-            const { listUseCaseFactory, cacheRepositoryFactory } = this.dependencies;
+            const { listUseCaseFactory, cacheRepositoryFactory } = CyclistController.dependencies;
+            if (!listUseCaseFactory || !cacheRepositoryFactory) {
+                throw new Error("CyclistController dependencies are not configured.");
+            }
             const redisCache = cacheRepositoryFactory();
             const cyclistIsCached = await redisCache.existsDataInCache("cyclist");
             

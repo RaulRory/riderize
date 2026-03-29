@@ -1,7 +1,3 @@
-import { JoiValidatorAdapter } from "../../libs/joi.js";
-import { makeCreateRideUseCase } from "../../factories/makeCreateRideUseCase.js";
-import { makeFindRideBydIdUseCase } from "../../factories/makeFindRideByIdUseCase.js";
-import { CacheRepository } from "../../../../database/redis/redis-repository.js";
 import Joi from "joi";
 
 const createRideSchema = Joi.object({
@@ -15,23 +11,21 @@ const createRideSchema = Joi.object({
 });
 
 class RideController {
-    static dependencies = {
-        validator: new JoiValidatorAdapter(),
-        createUseCaseFactory: makeCreateRideUseCase,
-        findByIdUseCaseFactory: makeFindRideBydIdUseCase,
-        cacheRepositoryFactory: () => new CacheRepository(),
-    };
+    static dependencies = {};
 
     static configure(dependencies) {
-        this.dependencies = {
-            ...this.dependencies,
+        RideController.dependencies = {
+            ...RideController.dependencies,
             ...dependencies,
         };
     }
 
     static async create(request, reply) {
         try {
-            const { validator, createUseCaseFactory } = this.dependencies;
+            const { validator, createUseCaseFactory } = RideController.dependencies;
+            if (!validator || !createUseCaseFactory) {
+                throw new Error("RideController dependencies are not configured.");
+            }
             
             const { 
                 name, 
@@ -64,7 +58,10 @@ class RideController {
 
     static async findById(request, reply) {
         try {
-            const { findByIdUseCaseFactory, cacheRepositoryFactory } = this.dependencies;
+            const { findByIdUseCaseFactory, cacheRepositoryFactory } = RideController.dependencies;
+            if (!findByIdUseCaseFactory || !cacheRepositoryFactory) {
+                throw new Error("RideController dependencies are not configured.");
+            }
             const { id } = request.params;
 
             const redisCache = cacheRepositoryFactory();

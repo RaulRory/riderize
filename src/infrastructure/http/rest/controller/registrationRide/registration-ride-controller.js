@@ -1,7 +1,3 @@
-import { CacheRepository } from "../../../../database/redis/redis-repository.js";
-import { makeListRegistrationRideUseCase } from "../../factories/makeListRegistrationRideUseCase.js";
-import { makeRegistrationRideUseCase } from "../../factories/makeRegistrationRideUseCase.js";
-import { JoiValidatorAdapter } from "../../libs/joi.js";
 import Joi from "joi";
 
 const registrationSchema = Joi.object({
@@ -11,23 +7,21 @@ const registrationSchema = Joi.object({
 });
 
 export class RegistrationRideController {
-    static dependencies = {
-        validator: new JoiValidatorAdapter(),
-        createUseCaseFactory: makeRegistrationRideUseCase,
-        listUseCaseFactory: makeListRegistrationRideUseCase,
-        cacheRepositoryFactory: () => new CacheRepository(),
-    };
+    static dependencies = {};
 
     static configure(dependencies) {
-        this.dependencies = {
-            ...this.dependencies,
+        RegistrationRideController.dependencies = {
+            ...RegistrationRideController.dependencies,
             ...dependencies,
         };
     }
     
     static async create(request, reply) {
         try {
-            const { validator, createUseCaseFactory } = this.dependencies;
+            const { validator, createUseCaseFactory } = RegistrationRideController.dependencies;
+            if (!validator || !createUseCaseFactory) {
+                throw new Error("RegistrationRideController dependencies are not configured.");
+            }
             const { cyclistId, rideId, subscriptionDate } = validator.validate(registrationSchema, request.body);
             const registrationRideUseCase = createUseCaseFactory();
             
@@ -42,7 +36,10 @@ export class RegistrationRideController {
 
     static async findById(request, reply) {
         try {
-            const { listUseCaseFactory, cacheRepositoryFactory } = this.dependencies;
+            const { listUseCaseFactory, cacheRepositoryFactory } = RegistrationRideController.dependencies;
+            if (!listUseCaseFactory || !cacheRepositoryFactory) {
+                throw new Error("RegistrationRideController dependencies are not configured.");
+            }
             const cyclistId = request.user.sub;
             const redisCache = cacheRepositoryFactory();
             const registrationIsCached = await redisCache.existsDataInCache(`registration-${cyclistId}`);
