@@ -1,5 +1,5 @@
 
-import { JoiValidator } from "../../libs/joi.js";
+import { JoiValidatorAdapter } from "../../libs/joi.js";
 import { makeCreateCyclyitUseCase } from "../../factories/makeCreateCiclystUseCase.js";
 import { makeListCyclistUseCase } from "../../factories/makeListCyclistUseCase.js";
 import { CacheRepository } from "../../../../database/redis/redis-repository.js";
@@ -12,11 +12,26 @@ const cyclistSchema = Joi.object({
 });
 
 export class CyclistController {
+    static dependencies = {
+        validator: new JoiValidatorAdapter(),
+        createUseCaseFactory: makeCreateCyclyitUseCase,
+        listUseCaseFactory: makeListCyclistUseCase,
+        cacheRepositoryFactory: () => new CacheRepository(),
+    };
+
+    static configure(dependencies) {
+        this.dependencies = {
+            ...this.dependencies,
+            ...dependencies,
+        };
+    }
+
     static async create(request, reply) {
         try {
-            const { name, email, password } = JoiValidator.validateSchema(cyclistSchema, request.body);
+            const { validator, createUseCaseFactory } = this.dependencies;
+            const { name, email, password } = validator.validate(cyclistSchema, request.body);
     
-            const createCyclistUseCase = makeCreateCyclyitUseCase();
+            const createCyclistUseCase = createUseCaseFactory();
     
             const { cyclist } =  await createCyclistUseCase.execute({ name, email, password });
 
@@ -35,14 +50,15 @@ export class CyclistController {
 
     static async fetch(request, reply) {
         try {
-            const redisCache = new CacheRepository();
+            const { listUseCaseFactory, cacheRepositoryFactory } = this.dependencies;
+            const redisCache = cacheRepositoryFactory();
             const cyclistIsCached = await redisCache.existsDataInCache("cyclist");
             
             if(cyclistIsCached) {
                 return reply.status(200).send({ cyclist: cyclistIsCached });
             }
 
-            const listCyclistUseCase = makeListCyclistUseCase();
+            const listCyclistUseCase = listUseCaseFactory();
     
             const { cyclist } =  await listCyclistUseCase.execute()
             await redisCache.addInCache("cyclist", cyclist)

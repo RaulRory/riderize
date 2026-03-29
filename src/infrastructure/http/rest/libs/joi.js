@@ -1,8 +1,9 @@
 import Joi from "joi";
+import { InputValidatorPort } from "../../../../application/ports/input-validator.js";
 
-class JoiValidator {
+class JoiValidatorAdapter extends InputValidatorPort {
     
-    static validateSchema(schema, data) {
+    validate(schema, data) {
         const dataSchema = Joi.compile(schema);
         const { error, value } = dataSchema.validate(data, { abortEarly: false, stripUnknown: true });
         if (error) {
@@ -13,4 +14,4 @@ class JoiValidator {
     }
 }
 
-export { JoiValidator }
+export { JoiValidatorAdapter }

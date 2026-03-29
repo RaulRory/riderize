@@ -1,7 +1,7 @@
 import { CacheRepository } from "../../../../database/redis/redis-repository.js";
 import { makeListRegistrationRideUseCase } from "../../factories/makeListRegistrationRideUseCase.js";
 import { makeRegistrationRideUseCase } from "../../factories/makeRegistrationRideUseCase.js";
-import { JoiValidator } from "../../libs/joi.js";
+import { JoiValidatorAdapter } from "../../libs/joi.js";
 import Joi from "joi";
 
 const registrationSchema = Joi.object({
@@ -11,11 +11,25 @@ const registrationSchema = Joi.object({
 });
 
 export class RegistrationRideController {
+    static dependencies = {
+        validator: new JoiValidatorAdapter(),
+        createUseCaseFactory: makeRegistrationRideUseCase,
+        listUseCaseFactory: makeListRegistrationRideUseCase,
+        cacheRepositoryFactory: () => new CacheRepository(),
+    };
+
+    static configure(dependencies) {
+        this.dependencies = {
+            ...this.dependencies,
+            ...dependencies,
+        };
+    }
     
     static async create(request, reply) {
         try {
-            const { cyclistId, rideId, subscriptionDate } = JoiValidator.validateSchema(registrationSchema, request.body);
-            const registrationRideUseCase = makeRegistrationRideUseCase();
+            const { validator, createUseCaseFactory } = this.dependencies;
+            const { cyclistId, rideId, subscriptionDate } = validator.validate(registrationSchema, request.body);
+            const registrationRideUseCase = createUseCaseFactory();
             
             const { registrationRide } = await registrationRideUseCase.execute({ rideId, cyclistId, subscriptionDate });
 
@@ -28,15 +42,16 @@ export class RegistrationRideController {
 
     static async findById(request, reply) {
         try {
+            const { listUseCaseFactory, cacheRepositoryFactory } = this.dependencies;
             const cyclistId = request.user.sub;
-            const redisCache = new CacheRepository();
+            const redisCache = cacheRepositoryFactory();
             const registrationIsCached = await redisCache.existsDataInCache(`registration-${cyclistId}`);
             
             if(registrationIsCached) {
                 return reply.status(200).send({ ride: registrationIsCached });
             }
 
-            const listRegistrationRideUseCase = makeListRegistrationRideUseCase();
+            const listRegistrationRideUseCase = listUseCaseFactory();
     
             const { registrationRide }  = await listRegistrationRideUseCase.execute(cyclistId);
             await redisCache.addInCache(`registration-${cyclistId}`, registrationRide)
