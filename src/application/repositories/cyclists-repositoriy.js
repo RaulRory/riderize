@@ -1,7 +1,1 @@
-class CyclistsRepository {
-    
-    create(propsCyclist) {}
-    listCyclits() {}
-}
-
-export {  CyclistsRepository }
+export { CyclistsRepository } from "./cyclists-repository.js";
