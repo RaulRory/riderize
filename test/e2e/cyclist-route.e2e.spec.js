@@ -6,6 +6,7 @@ import { JoiValidatorAdapter } from "../../src/infrastructure/http/rest/libs/joi
 
 describe("Cyclist route E2E (with injected dependencies)", () => {
   let app;
+  let capturedCreatePayload;
 
   beforeEach(async () => {
     app = Fastify();
@@ -15,9 +16,12 @@ describe("Cyclist route E2E (with injected dependencies)", () => {
     CyclistController.configure({
       validator: new JoiValidatorAdapter(),
       createUseCaseFactory: () => ({
-        execute: async ({ name, email }) => ({
+        execute: async ({ name, email, password }) => {
+          capturedCreatePayload = { name, email, password };
+          return {
           cyclist: { id: "c1", name, email },
-        }),
+          };
+        },
       }),
       listUseCaseFactory: () => ({
         execute: async () => ({
@@ -56,6 +60,11 @@ describe("Cyclist route E2E (with injected dependencies)", () => {
     });
 
     strictEqual(response.statusCode, 201);
+    deepStrictEqual(capturedCreatePayload, {
+      name: "John Doe",
+      email: "john@doe.com",
+      password: "123456",
+    });
     deepStrictEqual(response.json(), {
       id: "c1",
       name: "John Doe",

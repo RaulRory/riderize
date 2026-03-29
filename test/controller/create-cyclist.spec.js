@@ -7,6 +7,7 @@ import { JoiValidatorAdapter } from "../../src/infrastructure/http/rest/libs/joi
 describe('Cyclist Controller E2E', () => {
     let fastify;
     let cacheState;
+    let createPayload;
 
     beforeEach(async () => {
         fastify = Fastify();
@@ -15,7 +16,10 @@ describe('Cyclist Controller E2E', () => {
         CyclistController.configure({
             validator: new JoiValidatorAdapter(),
             createUseCaseFactory: () => ({
-                execute: async ({ name, email }) => ({ cyclist: { id: "c1", name, email } })
+                execute: async ({ name, email, password }) => {
+                    createPayload = { name, email, password };
+                    return { cyclist: { id: "c1", name, email } };
+                }
             }),
             listUseCaseFactory: () => ({
                 execute: async () => ({ cyclist: [{ id: 1, name: 'Jane Doe' }] })
@@ -26,7 +30,8 @@ describe('Cyclist Controller E2E', () => {
             })
         });
 
-        fastify.decorate('jwtSign', async () => 'token-test');
+        fastify.decorateReply('jwtSign', async () => 'token-test');
+        fastify.post('/api/cyclists', CyclistController.create);
         fastify.get('/api/cyclists', CyclistController.fetch);
         await fastify.ready();
     })
@@ -56,5 +61,24 @@ describe('Cyclist Controller E2E', () => {
 
         strictEqual(response.statusCode, 200);
         deepStrictEqual(response.json(), { cyclist: [{ id: 1, name: 'Jane Doe' }] });
+    });
+
+    it('should create cyclist and forward password to use case', async () => {
+        const response = await fastify.inject({
+            method: 'POST',
+            url: '/api/cyclists',
+            payload: {
+                name: 'Jane Doe',
+                email: 'jane@doe.dev',
+                password: '123456'
+            }
+        });
+
+        strictEqual(response.statusCode, 201);
+        deepStrictEqual(createPayload, {
+            name: 'Jane Doe',
+            email: 'jane@doe.dev',
+            password: '123456'
+        });
     });
 });
