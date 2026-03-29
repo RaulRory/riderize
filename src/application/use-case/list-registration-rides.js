@@ -1,3 +1,5 @@
+import { AppError } from "../errors/app-error.js";
+
 class ListRegistrationRidesUseCase {
     #repository;
 
@@ -9,7 +11,7 @@ class ListRegistrationRidesUseCase {
         const listRegistrationRides = await this.#repository.listRegistrationRidesByCyclitId(cyclistId);
 
         if(listRegistrationRides.length === 0) {
-            throw new Error("Cyclist not found!")
+            throw new AppError("Cyclist not found!", { code: "CYCLIST_NOT_FOUND", statusCode: 404 })
         }
 
         return {

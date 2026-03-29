@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
-import { deepStrictEqual, strictEqual } from "node:assert";
+import { deepStrictEqual, rejects, strictEqual } from "node:assert";
 import { makeResolvers } from "../../src/infrastructure/http/graphQL/make-resolvers.js";
+import { AppError } from "../../src/application/errors/app-error.js";
 
 describe("GraphQL resolvers", () => {
   it("should cache query results and reuse cached value", async () => {
@@ -60,6 +61,37 @@ describe("GraphQL resolvers", () => {
       rideId: "r1",
       cyclistId: "c1",
       subscriptionDate: "2026-03-29T00:00:00.000Z",
+    });
+  });
+
+  it("should map AppError to GraphQL error extensions", async () => {
+    const resolvers = makeResolvers({
+      listCyclistUseCase: {
+        execute: async () => {
+          throw new AppError("Cyclist not found!", {
+            code: "CYCLIST_NOT_FOUND",
+            statusCode: 404,
+          });
+        },
+      },
+      listRegistrationRideUseCase: { execute: async () => ({ registrationRide: [] }) },
+      findRideByIdUseCase: { execute: async () => ({ ride: {} }) },
+      createCyclistUseCase: { execute: async () => ({ cyclist: {} }) },
+      createRideUseCase: { execute: async () => ({ ride: {} }) },
+      createRegistrationRideUseCase: { execute: async () => ({ registrationRide: {} }) },
+      cacheRepository: {
+        existsDataInCache: async () => false,
+        addInCache: async () => {},
+      },
+    });
+
+    await rejects(async () => {
+      await resolvers.Query.cyclist();
+    }, (error) => {
+      strictEqual(error.message, "Cyclist not found!");
+      strictEqual(error.extensions.code, "CYCLIST_NOT_FOUND");
+      strictEqual(error.extensions.statusCode, 404);
+      return true;
     });
   });
 });

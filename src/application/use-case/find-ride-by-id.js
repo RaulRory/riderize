@@ -1,3 +1,5 @@
+import { AppError } from "../errors/app-error.js";
+
 class FindRideByIdUseCase {
     #repository;
 
@@ -10,7 +12,7 @@ class FindRideByIdUseCase {
         const ride = await this.#repository.findById(id);
 
         if(!ride) {
-            throw new Error("Ride not found!")
+            throw new AppError("Ride not found!", { code: "RIDE_NOT_FOUND", statusCode: 404 })
         }
 
         return {

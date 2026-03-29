@@ -1,4 +1,5 @@
 import { RegistrationsRide } from "../../domain/registrationsRide.js";
+import { AppError } from "../errors/app-error.js";
 
 class RegistrationRidesUseCase {
     #registrationRideRepository;
@@ -13,11 +14,11 @@ class RegistrationRidesUseCase {
         const ride = await this.#rideRepository.findById(rideId);
 
         if(!ride) {
-            throw new Error("ride not found.")
+            throw new AppError("ride not found.", { code: "RIDE_NOT_FOUND", statusCode: 404 })
         }
 
         if(ride.endDateRegistration.getTime() < subscriptionDate.getTime()) {
-            throw new Error("You cannot sign up for this ride.")
+            throw new AppError("You cannot sign up for this ride.", { code: "REGISTRATION_CLOSED", statusCode: 409 })
         }
 
         const argumentsRegistrationRide = {
