@@ -16,6 +16,6 @@ export async function registrationRideRoutes(appInstance) {
 
     appInstance.addHook("onRequest", verifyJwt)
 
-    appInstance.post("registration/ride",  RegistrationRideController.create)
-    appInstance.get("registration/ride", RegistrationRideController.findById)
+    appInstance.post("/registration/ride",  RegistrationRideController.create)
+    appInstance.get("/registration/ride", RegistrationRideController.findById)
 }

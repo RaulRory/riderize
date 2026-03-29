@@ -1,5 +1,6 @@
 
 import Joi from "joi";
+import { AppError } from "../../../../../application/errors/app-error.js";
 
 const cyclistSchema = Joi.object({
     name: Joi.string().trim().min(3).required(),
@@ -18,52 +19,44 @@ export class CyclistController {
     }
 
     static async create(request, reply) {
-        try {
-            const { validator, createUseCaseFactory } = CyclistController.dependencies;
-            if (!validator || !createUseCaseFactory) {
-                throw new Error("CyclistController dependencies are not configured.");
-            }
-            const { name, email, password } = validator.validate(cyclistSchema, request.body);
-    
-            const createCyclistUseCase = createUseCaseFactory();
-    
-            const { cyclist } =  await createCyclistUseCase.execute({ name, email, password });
-
-            const token = await reply.jwtSign({ 
-                sign: { 
-                    sub: cyclist.id
-                }
-            });
-            
-            return reply.status(201).send({ id: cyclist.id, name: cyclist.name, email: cyclist.email, token });
-        } catch (error) {
-            console.error(error);
-            throw new Error("Error Controller")
+        const { validator, createUseCaseFactory } = CyclistController.dependencies;
+        if (!validator || !createUseCaseFactory) {
+            throw new AppError("CyclistController dependencies are not configured.", { code: "CONTROLLER_NOT_CONFIGURED", statusCode: 500 });
         }
+
+        const { name, email, password } = validator.validate(cyclistSchema, request.body);
+
+        const createCyclistUseCase = createUseCaseFactory();
+
+        const { cyclist } =  await createCyclistUseCase.execute({ name, email, password });
+
+        const token = await reply.jwtSign({}, {
+            sign: {
+                sub: cyclist.id
+            }
+        });
+        
+        return reply.status(201).send({ id: cyclist.id, name: cyclist.name, email: cyclist.email, token });
     }
 
     static async fetch(request, reply) {
-        try {
-            const { listUseCaseFactory, cacheRepositoryFactory } = CyclistController.dependencies;
-            if (!listUseCaseFactory || !cacheRepositoryFactory) {
-                throw new Error("CyclistController dependencies are not configured.");
-            }
-            const redisCache = cacheRepositoryFactory();
-            const cyclistIsCached = await redisCache.existsDataInCache("cyclist");
-            
-            if(cyclistIsCached) {
-                return reply.status(200).send({ cyclist: cyclistIsCached });
-            }
-
-            const listCyclistUseCase = listUseCaseFactory();
-    
-            const { cyclist } =  await listCyclistUseCase.execute()
-            await redisCache.addInCache("cyclist", cyclist)
-
-            return reply.status(200).send({ cyclist });
-        } catch (error) {
-            console.error(error);
-            throw new Error("Error Controller")
+        const { listUseCaseFactory, cacheRepositoryFactory } = CyclistController.dependencies;
+        if (!listUseCaseFactory || !cacheRepositoryFactory) {
+            throw new AppError("CyclistController dependencies are not configured.", { code: "CONTROLLER_NOT_CONFIGURED", statusCode: 500 });
         }
+
+        const redisCache = cacheRepositoryFactory();
+        const cyclistIsCached = await redisCache.existsDataInCache("cyclist");
+        
+        if(cyclistIsCached) {
+            return reply.status(200).send({ cyclist: cyclistIsCached });
+        }
+
+        const listCyclistUseCase = listUseCaseFactory();
+
+        const { cyclist } =  await listCyclistUseCase.execute()
+        await redisCache.addInCache("cyclist", cyclist)
+
+        return reply.status(200).send({ cyclist });
     }
 }

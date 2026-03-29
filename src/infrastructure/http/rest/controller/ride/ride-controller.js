@@ -1,4 +1,5 @@
 import Joi from "joi";
+import { AppError } from "../../../../../application/errors/app-error.js";
 
 const createRideSchema = Joi.object({
     name: Joi.string().trim().min(3).required(),
@@ -21,66 +22,56 @@ class RideController {
     }
 
     static async create(request, reply) {
-        try {
-            const { validator, createUseCaseFactory } = RideController.dependencies;
-            if (!validator || !createUseCaseFactory) {
-                throw new Error("RideController dependencies are not configured.");
-            }
-            
-            const { 
-                name, 
-                starDate, 
-                starDateRegistration, 
-                endDateRegistration, 
-                startPlace, 
-                additionalInformation, 
-                participantsLimit 
-            } = validator.validate(createRideSchema, request.body);
-
-            const createRideUseCase = createUseCaseFactory();
-    
-            await createRideUseCase.execute({
-                name, 
-                starDate, 
-                starDateRegistration, 
-                endDateRegistration, 
-                startPlace, 
-                additionalInformation, 
-                participantsLimit
-            });
-
-            return reply.status(201).send({});
-        } catch (error) {
-            console.error(error);
-            throw new Error("Error Controller")
+        const { validator, createUseCaseFactory } = RideController.dependencies;
+        if (!validator || !createUseCaseFactory) {
+            throw new AppError("RideController dependencies are not configured.", { code: "CONTROLLER_NOT_CONFIGURED", statusCode: 500 });
         }
+        
+        const {
+            name,
+            starDate,
+            starDateRegistration,
+            endDateRegistration,
+            startPlace,
+            additionalInformation,
+            participantsLimit
+        } = validator.validate(createRideSchema, request.body);
+
+        const createRideUseCase = createUseCaseFactory();
+
+        await createRideUseCase.execute({
+            name,
+            starDate,
+            starDateRegistration,
+            endDateRegistration,
+            startPlace,
+            additionalInformation,
+            participantsLimit
+        });
+
+        return reply.status(201).send({});
     }
 
     static async findById(request, reply) {
-        try {
-            const { findByIdUseCaseFactory, cacheRepositoryFactory } = RideController.dependencies;
-            if (!findByIdUseCaseFactory || !cacheRepositoryFactory) {
-                throw new Error("RideController dependencies are not configured.");
-            }
-            const { id } = request.params;
-
-            const redisCache = cacheRepositoryFactory();
-            const rideIsCached = await redisCache.existsDataInCache(`ride-${id}`);
-            
-            if(rideIsCached) {
-                return reply.status(200).send({ ride: rideIsCached });
-            }
-
-            const findRideByid = findByIdUseCaseFactory();
-            const ride = await findRideByid.execute(id);
-            
-            await redisCache.addInCache(`ride-${id}`, ride)
-
-            return reply.status(200).send({ ride });
-        } catch (error) {
-            console.error(error);
-            throw new Error("Error Controller")
+        const { findByIdUseCaseFactory, cacheRepositoryFactory } = RideController.dependencies;
+        if (!findByIdUseCaseFactory || !cacheRepositoryFactory) {
+            throw new AppError("RideController dependencies are not configured.", { code: "CONTROLLER_NOT_CONFIGURED", statusCode: 500 });
         }
+        const { id } = request.params;
+
+        const redisCache = cacheRepositoryFactory();
+        const rideIsCached = await redisCache.existsDataInCache(`ride-${id}`);
+        
+        if(rideIsCached) {
+            return reply.status(200).send({ ride: rideIsCached });
+        }
+
+        const findRideByid = findByIdUseCaseFactory();
+        const ride = await findRideByid.execute(id);
+        
+        await redisCache.addInCache(`ride-${id}`, ride)
+
+        return reply.status(200).send({ ride });
     }
 }
 
