@@ -2,20 +2,36 @@ import Fastify from 'fastify';
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import { deepStrictEqual, strictEqual} from 'node:assert';
 import { CyclistController } from "../../src/infrastructure/http/rest/controller/cyclist/cyclist-controller.js";
-import { CacheRepository } from "../../src/infrastructure/database/redis/redis-repository.js";
-import { makeListCyclistUseCase } from "../../src/infrastructure/http/rest/factories/makeListCyclistUseCase.js"
+import { JoiValidatorAdapter } from "../../src/infrastructure/http/rest/libs/joi.js";
 
 describe('Cyclist Controller E2E', () => {
     let fastify;
+    let cacheState;
+    let createPayload;
 
     beforeEach(async () => {
         fastify = Fastify();
-        const mockCacheRepository = new CacheRepository();
-        const mockListCyclistUseCase = makeListCyclistUseCase();
-    
-        fastify.decorate('CacheRepository', mockCacheRepository);
-        fastify.decorate('makeListCyclistUseCase', mockListCyclistUseCase);
-    
+        cacheState = new Map();
+
+        CyclistController.configure({
+            validator: new JoiValidatorAdapter(),
+            createUseCaseFactory: () => ({
+                execute: async ({ name, email, password }) => {
+                    createPayload = { name, email, password };
+                    return { cyclist: { id: "c1", name, email } };
+                }
+            }),
+            listUseCaseFactory: () => ({
+                execute: async () => ({ cyclist: [{ id: 1, name: 'Jane Doe' }] })
+            }),
+            cacheRepositoryFactory: () => ({
+                existsDataInCache: async (key) => cacheState.get(key) ?? false,
+                addInCache: async (key, value) => cacheState.set(key, value),
+            })
+        });
+
+        fastify.decorateReply('jwtSign', async () => 'token-test');
+        fastify.post('/api/cyclists', CyclistController.create);
         fastify.get('/api/cyclists', CyclistController.fetch);
         await fastify.ready();
     })
@@ -26,10 +42,7 @@ describe('Cyclist Controller E2E', () => {
     });
 
     it('should return cached cyclist data if available', async () => {
-        const mockCacheRepository = new CacheRepository();
-        mockCacheRepository.existsDataInCache = (key) => key === "cyclist" ? [{ id: 1, name: 'John Doe' }] : null;
-        const mockListCyclistUseCase = makeListCyclistUseCase();
-        mockListCyclistUseCase.execute = async () => ({ cyclist: [{ id: 1, name: 'Jane Doe' }] });
+        cacheState.set("cyclist", [{ id: 1, name: 'John Doe' }]);
 
         const response = await fastify.inject({
             method: 'GET',
@@ -41,11 +54,6 @@ describe('Cyclist Controller E2E', () => {
     });
 
     it('should return cyclist data from use case if not cached', async () => {
-        const mockCacheRepository = new CacheRepository();
-        mockCacheRepository.existsDataInCache = () => false;
-        const mockListCyclistUseCase = makeListCyclistUseCase();
-        mockListCyclistUseCase.execute = async () => ({ cyclist: [{ id: 1, name: 'Jane Doe' }] });
-
         const response = await fastify.inject({
             method: 'GET',
             url: '/api/cyclists'
@@ -53,5 +61,24 @@ describe('Cyclist Controller E2E', () => {
 
         strictEqual(response.statusCode, 200);
         deepStrictEqual(response.json(), { cyclist: [{ id: 1, name: 'Jane Doe' }] });
+    });
+
+    it('should create cyclist and forward password to use case', async () => {
+        const response = await fastify.inject({
+            method: 'POST',
+            url: '/api/cyclists',
+            payload: {
+                name: 'Jane Doe',
+                email: 'jane@doe.dev',
+                password: '123456'
+            }
+        });
+
+        strictEqual(response.statusCode, 201);
+        deepStrictEqual(createPayload, {
+            name: 'Jane Doe',
+            email: 'jane@doe.dev',
+            password: '123456'
+        });
     });
 });

@@ -1,7 +1,1 @@
-class RegistrationRidesRepository {
-
-    create(propsRegistrationRide) {}
-    listRegistrationRidesByCyclitId(cyclistId) {}
-}
-
-export {  RegistrationRidesRepository }
+export { RegistrationRidesRepository } from "./registration-ride-repository.js";

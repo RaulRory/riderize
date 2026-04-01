@@ -18,14 +18,14 @@ export const schema =`
             additionalInformation: String,
             participantsLimit: Int
         ): Ride
-        createRegistrationRide(ride_id: ID!, cyclist_id: ID!, subscription_date: DateTime!): RegistrationRide
+        createRegistrationRide(rideId: ID!, cyclistId: ID!, subscriptionDate: DateTime!): RegistrationRide
     }
 
     type RegistrationRide {
         id: ID!,
-        ride: Ride!,
-        cyclist: Cyclist!,
-        subscription_date: DateTime!
+        rideId: ID!,
+        cyclistId: ID!,
+        subscriptionDate: DateTime!
     }
 
     type Cyclist {

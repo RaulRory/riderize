@@ -52,7 +52,7 @@ describe("Registration Ride", () => {
 
     await rejects(async () => {
       await useCase.execute(registrationRide);
-    }, new Error("ride not found."));
+    }, /ride not found\./);
   });
 
   it("should throw an error if subscription date is after the end date registration", async () => {
@@ -66,6 +66,20 @@ describe("Registration Ride", () => {
 
     await rejects(async () => {
       await useCase.execute(registrationRide);
-    }, new Error("You cannot sign up for this ride."));
+    }, /You cannot sign up for this ride\./);
+  });
+
+  it("should throw an error when subscription date is in another month after end date registration", async () => {
+    await ridesRepository.create(
+      makeRides({ id: "ID_TEST_DATE", endDateRegistration: new Date("2023-10-31") })
+    );
+    const registrationRide = makeRegistrationRide({
+      rideId: "ID_TEST_DATE",
+      subscriptionDate: new Date("2023-11-01"),
+    });
+
+    await rejects(async () => {
+      await useCase.execute(registrationRide);
+    }, /You cannot sign up for this ride\./);
   });
 });

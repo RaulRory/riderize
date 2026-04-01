@@ -1,5 +1,5 @@
 import { prisma } from "../../connection/prisma.js"
-import { CyclistsRepository } from "../../../../application/repositories/cyclists-repositoriy.js";
+import { CyclistsRepository } from "../../../../application/repositories/cyclists-repository.js";
 
 class PrismaCyclistsRepository extends CyclistsRepository {
     
@@ -15,7 +15,7 @@ class PrismaCyclistsRepository extends CyclistsRepository {
         return cyclist;
     }
 
-    async listCyclits() {
+    async listCyclists() {
         const cyclists = await prisma.cyclist.findMany();
         return cyclists;
     }

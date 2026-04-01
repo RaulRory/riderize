@@ -1,4 +1,4 @@
-import { RegistrationRidesRepository } from "../../src/application/repositories/registartion-ride-repository.js"
+import { RegistrationRidesRepository } from "../../src/application/repositories/registration-ride-repository.js"
 
 class RegistrationRidesInMemoryRepository extends RegistrationRidesRepository  {
     registrationRides = [];
@@ -7,7 +7,7 @@ class RegistrationRidesInMemoryRepository extends RegistrationRidesRepository  {
         this.registrationRides.push(propsRegistrationRide)
     }
 
-    async listRegistrationRidesByCyclitId(cyclistId) {
+    async listRegistrationRidesByCyclistId(cyclistId) {
         const registrationRide = this.registrationRides.filter((item) => item.cyclistId === cyclistId);
         
         if (!registrationRide) {

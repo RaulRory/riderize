@@ -49,6 +49,6 @@ describe("List Registration Rides", () => {
         await rejects(async () => {
             await useCase.execute(idCyclistTest)
         }, 
-        new Error("Cyclist not found!"))
+        /Cyclist not found!/)
     });
 });
